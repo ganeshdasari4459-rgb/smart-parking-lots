@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Smart Parking Area - Digital Reservation System</title>
+<meta name="description" content="Find a mall, theatre or restaurant on the map and reserve your parking bay online.">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--g:#1a73e8;--dk:#0b3d91;--ink:#202124;--gr:#5f6368;--ln:#dadce0;--bg:#f4f6fb;--ok:#188038;--bad:#d93025;--f:Roboto,system-ui,sans-serif}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font:16px/1.5 var(--f);color:var(--ink);background:var(--bg)}
+button,select,input{font:inherit}button{cursor:pointer;border:0}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #fbbc04;outline-offset:2px}
+.nav{position:sticky;top:0;z-index:1000;background:#fff;box-shadow:0 1px 6px #0002;display:flex;align-items:center;gap:20px;padding:10px 24px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font:700 20px var(--f);color:var(--dk);text-decoration:none;margin-right:auto}
+.logo{width:34px;height:34px;border-radius:8px;background:var(--dk);color:#fff;font:700 22px/34px var(--f);text-align:center}
+.nav a.l{color:var(--ink);text-decoration:none;font-weight:500}.nav a.l:hover{color:var(--g)}
+.mode{display:inline-flex;border:1.5px solid var(--dk);border-radius:22px;overflow:hidden}
+.mode button{background:none;color:var(--dk);padding:8px 16px;font-weight:500}.mode .on{background:var(--dk);color:#fff}
+.hero{background:linear-gradient(135deg,var(--dk),#1a73e8);color:#fff;padding:38px 24px 26px}
+.hero>*{max-width:1200px;margin-left:auto;margin-right:auto}
+.hero h1{font:700 clamp(28px,4.5vw,44px)/1.1 var(--f);margin-bottom:8px;margin-top:0}.hero p{margin:0 auto 18px;opacity:.92;font-size:18px}
+.search{display:flex;background:#fff;border-radius:30px;max-width:620px!important;margin-left:max(0px,calc((100% - 1200px)/2))!important;margin-right:auto!important;box-shadow:0 2px 10px #0004}
+.search input{flex:1;min-width:0;border:0;background:transparent;padding:14px 20px;font-size:17px;color:var(--ink)}
+.search button{background:var(--g);color:#fff;border-radius:0 30px 30px 0;padding:0 26px;font-weight:500}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px!important}
+.chip{padding:8px 16px;border-radius:20px;background:#ffffff26;color:#fff;border:1.5px solid #fff8;font-weight:500}.chip.on{background:#fff;color:var(--dk)}
+.wrap{max-width:1200px;margin:0 auto;padding:22px 16px}
+.grid{display:grid;grid-template-columns:380px 1fr;gap:16px;align-items:start}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.mapbox{order:-1}.nav{padding:10px 14px}}
+.card{background:#fff;border:1px solid var(--ln);border-radius:14px;padding:16px}
+h2{font:500 24px/1.2 var(--f);margin:0 0 10px}h3{font-weight:500;margin:12px 0 0}.sub{color:var(--gr);font-size:14px;margin:0}
+#list{max-height:600px;overflow:auto}
+select{width:100%;padding:11px;border:1px solid var(--ln);border-radius:10px;background:#fff;color:var(--ink);margin-bottom:8px}
+.v{display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:none;color:var(--ink);padding:10px 4px;border-bottom:1px solid #eee;border-radius:8px}
+.v:hover,.v.on{background:#e8f0fe}.ic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:19px;flex:none}
+.v b{display:block;font-weight:500}.v small{color:var(--gr)}.ok{color:var(--ok);font-weight:500}
+.mapbox{position:relative;height:600px;border-radius:14px;overflow:hidden;border:1px solid var(--ln)}
+@media(max-width:900px){.mapbox{height:460px}}
+#map{position:absolute;inset:0;background:#222}
+.mb{position:absolute;z-index:500;background:#fff;color:#444;border-radius:10px;box-shadow:0 1px 6px #0006;font-weight:500}
+#lay,#me,#dirb{right:10px;width:44px;height:44px;font-size:21px}#lay{top:10px}#me{top:62px}#dirb{top:114px;background:#00639b;color:#fff}
+#sa{top:10px;left:50%;transform:translateX(-50%);padding:9px 18px;border-radius:20px;color:var(--g)}
+.pcard{position:absolute;left:10px;bottom:10px;z-index:500;width:min(360px,calc(100% - 20px));background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 2px 10px #0006}
+.pcard[hidden]{display:none}.pcard h3{margin:0;font-size:19px}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0}.pill{height:40px;padding:0 18px;border-radius:20px;font-weight:500;background:#fff;color:var(--g);border:1px solid var(--ln);text-decoration:none;display:inline-flex;align-items:center}.pill.p{background:var(--g);color:#fff;border-color:var(--g)}
+.rinfo{color:var(--ok);font-weight:500;min-height:0}
+.stats{display:flex;gap:10px;margin:12px 0;max-width:420px}.stat{flex:1;text-align:center;background:#f1f3f4;border-radius:10px;padding:8px;font-size:13px;color:var(--gr)}.stat b{display:block;font-size:26px;color:var(--ink);font-weight:500}
+.lot{display:grid;grid-template-columns:repeat(10,1fr);background:#2b3240;padding:14px 8px;border-radius:12px;margin-top:10px}
+@media(max-width:700px){.lot{grid-template-columns:repeat(5,1fr)}}
+.bay{height:76px;border:0;border-left:3px dashed #fffa;border-radius:0;background:none;color:#fff;font:700 19px var(--f);padding:4px 2px}.bay:nth-child(10n),.bay:last-child{border-right:3px dashed #fffa}
+@media(max-width:700px){.bay:nth-child(10n){border-right:0}.bay:nth-child(5n){border-right:3px dashed #fffa}}
+.bay small{display:block;font:400 11px var(--f);overflow:hidden;text-overflow:ellipsis}.bay.taken{background:#d93025cc}.bay.over{background:#e37400cc}.bay.sel{background:#fbbc04;color:#202124}
+.req{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #eee;font-size:15px}.req button{height:34px;padding:0 14px;border-radius:17px;background:var(--g);color:#fff}.req .no{background:var(--bad)}
+.hint{font-size:14px;color:var(--gr);margin:8px 0}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}.steps .card b{display:block;font-size:18px;margin:6px 0 4px}.steps .n{width:34px;height:34px;border-radius:50%;background:var(--dk);color:#fff;display:grid;place-items:center;font-weight:700}
+footer{background:var(--dk);color:#fff;text-align:center;padding:20px;font-size:14px}
+.pin{width:36px;height:36px;border-radius:50%;border:3px solid #fff;display:grid;place-items:center;font-size:17px;box-shadow:0 1px 5px #0008;position:relative}
+.pin.sel{width:44px;height:44px;margin:-4px;border-color:#fbbc04;font-size:21px}
+.pl{position:absolute;left:40px;top:6px;white-space:nowrap;color:#fff;font:500 13px var(--f);text-shadow:0 0 3px #000,0 0 3px #000}.nolab .pl{display:none}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#323232;color:#fff;border-radius:10px;padding:10px 18px;z-index:1100;font-size:14px;max-width:90%;text-align:center}
+.modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:16px;z-index:1200}.modal.open{display:flex}
+.box{background:#fff;border-radius:16px;padding:18px;width:100%;max-width:400px;max-height:94vh;overflow:auto}
+.box label{display:block;font-size:13px;font-weight:500;margin:10px 0 4px}.box input{width:100%;padding:11px;border:1px solid var(--ln);border-radius:10px;color:var(--ink)}
+.pass{border:2px dashed var(--g);border-radius:12px;padding:12px}.pass p{margin:3px 0}#qr{display:flex;justify-content:center;margin:10px 0}
+@media(max-width:700px){.nav a.l{display:none}.nav{gap:10px}.brand{font-size:17px}.mode button{padding:7px 12px}}
+.mapmsg{position:absolute;left:16px;right:70px;top:70px;z-index:600;background:#fff;color:#202124;padding:14px 16px;border-radius:12px;box-shadow:0 2px 10px #0006;font-size:15px}.mapmsg[hidden]{display:none}
+#book,#find,#how{scroll-margin-top:70px}.leaflet-control-attribution{font-size:10px}.leaflet-top.leaflet-left{top:0}
+</style></head><body>
+<header class="nav"><a class="brand" href="#"><span class="logo">P</span>Smart Parking Area</a>
+<a class="l" href="#find">Find parking</a><a class="l" href="#book">Reserve a bay</a><a class="l" href="#how">How it works</a>
+<div class="mode" role="group" aria-label="View"><button id="mIN" class="on">User view</button><button id="mOUT">🔒 Staff gate</button></div></header>
+<section class="hero"><h1>Find a place. Reserve your parking bay.</h1><p>Choose an area, pick a mall, theatre or restaurant on the map, and book a bay before you arrive.</p>
+<div class="search"><input id="q" placeholder="Search an area, city or place" aria-label="Search an area, city or place"><button id="qb">Search</button></div>
+<div class="chips" id="chips" role="group" aria-label="Place type"></div></section>
+<section class="wrap grid" id="find">
+<aside class="card" id="list" aria-live="polite"></aside>
+<div class="mapbox"><div id="map" role="application" aria-label="Map of places"></div>
+<button class="mb" id="lay" aria-label="Switch map type">◈</button><button class="mb" id="me" aria-label="My location">◎</button><button class="mb" id="dirb" aria-label="Directions">➤</button>
+<button class="mb" id="sa" hidden>Search this area</button>
+<div class="mapmsg" id="mapmsg" hidden><b>The map can’t load in this view.</b><br>Maps don’t load inside the Claude file preview or a downloaded file. Open this page from your website link in Chrome or another browser.</div>
+<div class="pcard" id="pcard" hidden><h3 id="pcN"></h3><div id="pcI"></div><div class="acts"><button class="pill p" id="rt">Directions</button><button class="pill" id="pcR">Reserve parking</button></div></div></div>
+</section>
+<section class="wrap" id="book"><div class="card" id="lotsec"></div></section>
+<section class="wrap" id="how"><h2>How it works</h2><div class="steps">
+<div class="card"><span class="n">1</span><b>Choose a place</b>Pick an area, then a mall, theatre, restaurant or other place on the map.</div>
+<div class="card"><span class="n">2</span><b>Request a bay</b>Choose a free bay and send your name, phone number and vehicle number.</div>
+<div class="card"><span class="n">3</span><b>Show your pass</b>After staff approve, show the QR code on your pass at the gate.</div></div></section>
+<footer>Smart Parking Area · Digital Reservation System · Map data © OpenStreetMap contributors · Version 5 (booking fix)</footer>
+<div id="toast" hidden></div>
+
+<div class="modal" id="lm"><div class="box"><h2>Staff login</h2><p class="hint">Enter the staff password to open the staff gate.</p><label for="sp">Password</label><input id="sp" type="password" autocomplete="current-password"><p class="hint" id="se" style="color:#d93025" role="alert"></p><div class="acts"><button class="pill" id="lc">Cancel</button><button class="pill p" id="ls2">Unlock</button></div></div></div>
+<div class="modal" id="fm"><div class="box"><h2>Request Parking Reservation</h2><p class="hint" id="fv"></p>
+<label for="nm">Person Name</label><input id="nm" autocomplete="name"><label for="ph">Ph. No</label><input id="ph" type="tel" autocomplete="tel"><label for="vh">Vehicle Reg Number</label><input id="vh">
+<label for="sl">Select Preferred Slot</label><select id="sl" style="margin:0"></select>
+<label for="ar">Arrival Time</label><input id="ar" type="datetime-local">
+<label for="du">Parking Duration</label><select id="du" style="margin:0"><option value="30">30 minutes</option><option value="60" selected>1 hour</option><option value="120">2 hours</option><option value="180">3 hours</option><option value="240">4 hours</option><option value="360">6 hours</option><option value="480">8 hours</option><option value="720">12 hours</option><option value="1440">24 hours</option></select>
+<p class="hint" id="fe" style="color:#d93025;font-weight:500" role="alert"></p><div class="acts" style="position:sticky;bottom:-18px;background:#fff;padding:12px 0 4px"><button class="pill" id="fc">Cancel</button><button class="pill p" id="fs">Submit Request</button></div></div></div>
+<div class="modal" id="pm"><div class="box"><div class="pass"><h2>OFFICIAL PARKING PASS</h2><p>Place: <b id="pV"></b></p><p>Ticket ID: <b id="pT"></b></p><p>Driver Name: <b id="pN"></b></p><p>Vehicle No: <b id="pH"></b></p><p>Slot Position: <b id="pS"></b></p><p>Booking Time: <b id="pB"></b></p><p>Arrival: <b id="pA"></b></p><p>Duration: <b id="pDu"></b></p><p>Valid Until: <b id="pU"></b></p>
+<div id="qr"></div><p class="hint" style="text-align:center">Show QR Code at Gate Entrance</p></div>
+<div class="acts"><button class="pill p" id="pd">Download Ticket Pass</button><button class="pill" id="pc">Close</button></div></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+window.onerror=(m,u,l)=>{try{toast('Error: '+m+' (line '+l+')',8000)}catch(e){}};
+const TOTAL=20,$=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const CATS={restaurant:{l:'Restaurants',s:'Restaurant',c:'#e8710a',e:'🍴',q:'["amenity"~"^(restaurant|fast_food)$"]'},mall:{l:'Malls',s:'Mall',c:'#9334e6',e:'🛍️',q:'["shop"~"^(mall|department_store)$"]'},theatre:{l:'Theatres',s:'Theatre',c:'#d93025',e:'🎬',q:'["amenity"~"cinema|theatre"]'},hospital:{l:'Hospitals',s:'Hospital',c:'#188038',e:'🏥',q:'["amenity"="hospital"]'},park:{l:'Parks',s:'Park',c:'#0b8043',e:'🌳',q:'["leisure"="park"]'},fuel:{l:'Petrol',s:'Petrol pump',c:'#1a73e8',e:'⛽',q:'["amenity"="fuel"]'}};
+const AREAS={Gudivada:[16.435,80.993],Vijayawada:[16.5062,80.648],Machilipatnam:[16.1875,81.1389],Guntur:[16.3067,80.4365],Hyderabad:[17.385,78.4867]};
+let area='Gudivada',cat=null,mode='IN',venues=[],sel=null,pick=null,db={},cur=null,map,mk=[],rl=null,um=null,rtxt='',layer='sat',tl=[];
+const st=id=>{if(!db[id]){let s=null;try{s=JSON.parse(localStorage.getItem('sp:'+id))}catch(e){}db[id]=s||{slots:Array(TOTAL).fill(null),pend:[]}}return db[id]};
+const save=id=>{try{localStorage.setItem('sp:'+id,JSON.stringify(db[id]))}catch(e){}};
+const free=v=>st(v.id).slots.filter(x=>!x).length;
+let tt;function toast(t,ms=2800){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(tt);if(ms)tt=setTimeout(()=>e.hidden=true,ms)}
+/* Chips & mode */
+$('chips').innerHTML=Object.keys(CATS).map(k=>`<button class="chip" data-k="${k}">${CATS[k].e} ${CATS[k].l}</button>`).join('');
+$('chips').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;cat=cat==b.dataset.k?null:b.dataset.k;[...$('chips').children].forEach(c=>c.classList.toggle('on',c.dataset.k==cat));$('find').scrollIntoView();live()};
+function setMode(m){mode=m;$('mIN').classList.toggle('on',m=='IN');$('mOUT').classList.toggle('on',m=='OUT');renderLot()}
+const SH='cab2f0a97da7e1de9e666c30cd75d4c44b7c5bf93002cd84f985471f2fed6f0e';let unlocked=false;
+async function sha(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+$('mIN').onclick=()=>{unlocked=false;setMode('IN')};
+$('mOUT').onclick=()=>{if(unlocked){setMode('OUT');$('book').scrollIntoView()}else{$('se').textContent='';$('sp').value='';$('lm').classList.add('open');$('sp').focus()}};
+$('lc').onclick=()=>$('lm').classList.remove('open');
+async function unlock(){try{if((await sha($('sp').value))===SH){unlocked=true;$('lm').classList.remove('open');setMode('OUT');$('book').scrollIntoView()}else $('se').textContent='Wrong password. Try again.'}catch(e){$('se').textContent='Staff login needs a secure (https) page.'}}
+$('ls2').onclick=unlock;$('sp').onkeydown=e=>{if(e.key=='Enter')unlock()};
+/* List */
+function renderList(){const opts=[...new Set([area,...Object.keys(AREAS)])];
+ $('list').innerHTML=`<h2>Places in ${esc(area)}</h2><p class="sub" style="margin-bottom:10px">${venues.length} places${cat?' · '+CATS[cat].l:''}</p><select id="area" aria-label="Choose area">${opts.map(a=>`<option${a==area?' selected':''}>${esc(a)}</option>`).join('')}</select>`+
+ (venues.length?venues.map(v=>{const f=free(v);return `<button class="v${sel&&sel.id==v.id?' on':''}" data-id="${esc(v.id)}"><span class="ic" style="background:${CATS[v.t].c}22">${CATS[v.t].e}</span><span><b>${esc(v.n)}</b><small>${CATS[v.t].s} · <span class="${f?'ok':''}">${f} of ${TOTAL} bays free</span></small></span></button>`}).join(''):ls=='load'?'<p class="hint">Searching for places…</p>':'<p class="hint">No places loaded yet. Check your internet connection, then search again.</p>'+(dbg.length?`<p class="hint">Details: ${esc(dbg.join(' · '))}</p>`:'')+'<button class="pill p" id="retry">Search again</button>')}
+$('list').onchange=e=>{if(e.target.id=='area'){const n=e.target.value;if(AREAS[n]){area=n;map.setView(AREAS[n],14,{animate:false});live()}}};
+$('list').onclick=e=>{if(e.target.id=='retry')return live();const v=e.target.closest('.v');if(v)choose(v.dataset.id)};
+/* Parking section */
+function renderLot(){const c=$('lotsec');
+ if(!sel){c.innerHTML=`<h2>${mode=='OUT'?'Staff gate':'Parking bays'}</h2><p class="hint">Select a place on the map or in the list to see its parking bays.</p>`;return}
+ const s=st(sel.id),f=free(sel),staff=mode=='OUT';
+ c.innerHTML=`<h2>${esc(sel.n)}</h2><p class="sub">${CATS[sel.t].s} · ${staff?'Staff gate view':'Parking reservation'}</p><div class="rinfo">${rtxt}</div>
+ <div class="acts"><button class="pill p" id="rt2">Directions</button>${staff?'':'<button class="pill p" id="rq">Request Reservation</button>'}<a class="pill" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${sel.lat},${sel.lng}">Open in Google Maps</a></div>
+ <div class="stats"><div class="stat">Total<b>${TOTAL}</b></div><div class="stat">Avail<b>${f}</b></div><div class="stat">Occupied<b>${TOTAL-f}</b></div></div>
+ ${s.pend.length?'<h3>Pending Booking Requests (Staff Approval)</h3>'+s.pend.map((p,i)=>`<div class="req"><span>${esc(p.name)} · ${esc(p.veh)} · Slot ${p.slot+1}${p.mins?' · '+durL(p.mins):''}</span>${staff?`<span><button data-a="ok" data-i="${i}">Approve</button> <button class="no" data-a="no" data-i="${i}">Reject</button></span>`:'<em>Waiting</em>'}</div>`).join(''):'<p class="hint">No pending requests.</p>'}
+ <div class="lot">${s.slots.map((x,i)=>`<button class="bay ${x?(x.end&&Date.now()>x.end?'taken over':'taken'):'free'}${pick===i?' sel':''}" data-i="${i}" aria-label="Slot ${i+1} ${x?'occupied':'free'}">${i+1}<small>${x?esc(x.veh)+(x.end?'<br>'+(Date.now()>x.end?'Time over':'till '+hm(x.end)):''):'Free'}</small></button>`).join('')}</div>
+ <p class="hint">${staff?'Tap a red bay to release it.':'Tap a free bay to choose it, or a red bay to see its pass.'}</p>`}
+$('lotsec').onclick=e=>{
+ const b=e.target.closest('.bay');if(b&&sel){const i=+b.dataset.i,s=st(sel.id),x=s.slots[i];
+  if(!x){pick=i;return renderLot()}
+  if(mode=='OUT'){if(confirm(`Release slot ${i+1} (${x.veh})?`)){s.slots[i]=null;save(sel.id);draw()}}else showPass(x);return}
+ const a=e.target.closest('[data-a]');if(a){const s=st(sel.id),i=+a.dataset.i,p=s.pend[i];s.pend.splice(i,1);
+  if(a.dataset.a=='ok'){if(s.slots[p.slot])toast('That slot is already taken.');else{p.ticket='SP-'+Math.random().toString(36).slice(2,8).toUpperCase();p.venue=sel.n;p.time=new Date().toLocaleString();if(p.start)p.end=p.start+p.mins*60000;s.slots[p.slot]=p;save(sel.id);draw();showPass(p);return}}
+  save(sel.id);return draw()}
+ if(e.target.id=='rt2')route();if(e.target.id=='rq')openForm()};
+/* Map */
+function card(){const c=$('pcard');if(!sel){c.hidden=true;return}const f=free(sel);c.hidden=false;$('pcN').textContent=sel.n;
+ $('pcI').innerHTML=`${CATS[sel.t].s} · <b style="color:${f?'#188038':'#d93025'}">${f} of ${TOTAL} bays free</b><div class="rinfo">${rtxt}</div>`}
+function draw(){if(map){mk.forEach(m=>m.remove());mk=[];venues.forEach(v=>{const on=sel&&sel.id==v.id,m=L.marker([v.lat,v.lng],{icon:L.divIcon({className:'',iconSize:[36,36],iconAnchor:[18,18],html:`<div class="pin${on?' sel':''}" style="background:${CATS[v.t].c}">${CATS[v.t].e}<span class="pl">${esc(v.n)}</span></div>`}),title:v.n}).addTo(map);m.on('click',()=>choose(v.id));mk.push(m)})}renderList();renderLot();card()}
+function choose(id){sel=venues.find(v=>String(v.id)==String(id));pick=null;rl&&rl.remove();rl=null;rtxt='';map.setView([sel.lat,sel.lng],Math.max(map.getZoom(),16),{animate:false});draw()}
+const kind=t=>/^(mall|department_store)$/.test(t.shop||'')?'mall':/cinema|theatre/.test(t.amenity||'')?'theatre':/^(restaurant|fast_food)$/.test(t.amenity||'')?'restaurant':t.amenity=='hospital'?'hospital':t.amenity=='fuel'?'fuel':t.leisure=='park'?'park':null;
+let dbg=[];
+async function ovp(q){const U=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];
+ for(const u of U){const h=new URL(u).hostname;try{const c=new AbortController(),t=setTimeout(()=>c.abort(),15000),r=await fetch(u,{method:'POST',body:'data='+encodeURIComponent(q),signal:c.signal});clearTimeout(t);if(r.ok)return await r.json();dbg.push(h+': error '+r.status)}catch(e){dbg.push(h+': '+(e.name=='AbortError'?'timed out':'blocked or offline'))}}
+ throw new Error('overpass')}
+let ls='';
+function parse(j){const o=[],seen={};j.elements.forEach(e=>{const t=e.tags||{},n=t.name||t.brand,k=kind(t);if(!n||!k||seen[e.id])return;seen[e.id]=1;o.push({id:'osm'+e.id,n,t:k,lat:e.lat||e.center.lat,lng:e.lon||e.center.lon})});return o}
+async function nom(ks,b){const W={restaurant:'restaurant',mall:'shopping mall',theatre:'cinema',hospital:'hospital',park:'park',fuel:'petrol pump'},out=[];
+ for(const k of ks){try{const j=await(await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=15&bounded=1&viewbox=${b.getWest()},${b.getNorth()},${b.getEast()},${b.getSouth()}&q=${encodeURIComponent(W[k])}`)).json();
+  j.forEach(e=>out.push({id:'n'+e.place_id,n:e.name||e.display_name.split(',')[0],t:k,lat:+e.lat,lng:+e.lon}))}catch(e){dbg.push('nominatim: blocked or offline')}
+  if(ks.length>1)await new Promise(r=>setTimeout(r,1100))}return out}
+async function live(retry=0){if(map.getZoom()<11){toast('Zoom in to search places.');return}
+ const b=map.getBounds(),bb=[b.getSouth(),b.getWest(),b.getNorth(),b.getEast()].join(','),ks=cat?[cat]:Object.keys(CATS),c=map.getCenter();
+ dbg=[];ls='load';$('sa').hidden=true;renderList();toast('Searching this area…',0);
+ let list=null;
+ try{list=parse(await ovp('[out:json][timeout:25];('+ks.map(k=>`nwr${CATS[k].q}(${bb});`).join('')+');out center 80;'))}catch(e){}
+ if(list===null){toast('Trying another source…',0);list=await nom(ks,b)}
+ if(!list.length&&retry<2&&map.getZoom()>12){map.setZoom(map.getZoom()-1,{animate:false});return live(retry+1)}
+ venues=list.sort((x,y)=>map.distance(c,[x.lat,x.lng])-map.distance(c,[y.lat,y.lng]));ls=venues.length?'':'none';sel=null;rl&&rl.remove();rl=null;rtxt='';
+ if(!venues.length)$('sa').hidden=false;
+ toast(venues.length?venues.length+' places found':'No places found. Check your internet and tap Search again.',4000);draw()}
+$('sa').onclick=live;
+async function search(){const t=$('q').value.trim();if(!t)return;toast('Searching…',0);
+ try{const j=await(await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(t))).json();
+  if(!j.length){toast('Nothing found. Try a more specific name.');return}area=j[0].display_name.split(',')[0];$('find').scrollIntoView();map.setView([+j[0].lat,+j[0].lon],15,{animate:false});live()}
+ catch(e){toast('Search failed. Check your connection.')}}
+$('qb').onclick=search;$('q').onkeydown=e=>{if(e.key=='Enter')search()};
+function locate(cb){if(!navigator.geolocation){toast('Location is not supported on this device.');return}
+ navigator.geolocation.getCurrentPosition(p=>{const a=[p.coords.latitude,p.coords.longitude];um&&um.remove();um=L.circleMarker(a,{radius:9,color:'#fff',weight:3,fillColor:'#1a73e8',fillOpacity:1}).addTo(map);cb(a)},()=>toast('Allow location access to use this feature.',4000))}
+$('me').onclick=()=>locate(a=>{map.setView(a,16);area='Near you';$('sa').hidden=false});
+function route(){if(!sel){toast('Select a place first.');return}rtxt='Finding your route…';card();renderLot();
+ locate(async a=>{try{const j=await(await fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${sel.lng},${sel.lat}?overview=full&geometries=geojson`)).json(),r=j.routes[0];
+  rl&&rl.remove();rl=L.geoJSON(r.geometry,{style:{color:'#4285f4',weight:7,opacity:.95}}).addTo(map);map.fitBounds(rl.getBounds(),{padding:[60,60]});$('find').scrollIntoView();
+  rtxt=`${Math.round(r.duration/60)} min (${(r.distance/1000).toFixed(1)} km) by car`}catch(e){rtxt='Could not find a route. Try again.'}card();renderLot()})}
+$('dirb').onclick=route;$('rt').onclick=route;$('pcR').onclick=()=>{$('mIN').click();$('book').scrollIntoView()};
+function setLayer(k){layer=k;tl.forEach(l=>l.remove());tl=k=='sat'?[L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:18,maxZoom:20,attribution:'Imagery © Esri, Maxar'}),L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© OpenStreetMap contributors © CARTO'})]:[L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© OpenStreetMap contributors © CARTO'})];tl.forEach(l=>{l.on('tileerror',tileFail);l.on('tileload',()=>{tf=-99999;$('mapmsg').hidden=true});l.addTo(map)})}
+let tf=0;function tileFail(){if(++tf==6)$('mapmsg').hidden=false}
+$('lay').onclick=()=>{setLayer(layer=='sat'?'map':'sat');toast(layer=='sat'?'Satellite view':'Map view',1500)};
+/* Time helpers */
+const nowL=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+const fmt=t=>new Date(t).toLocaleString([],{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'});
+const hm=t=>new Date(t).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+const durL=m=>m<60?m+' min':m%60?Math.floor(m/60)+' h '+m%60+' min':m/60+(m==60?' hour':' hours');
+setInterval(()=>{if(sel)renderLot()},60000);
+/* Reservation & pass */
+function openForm(){const s=st(sel.id),fr=s.slots.map((x,i)=>x||s.pend.some(p=>p.slot==i)?-1:i).filter(i=>i>=0);
+ if(!fr.length){alert('No free slots at this place.');return}
+ $('fv').textContent='Place: '+sel.n;$('fe').textContent='';$('ar').value=nowL();$('ar').min=nowL();$('sl').innerHTML=fr.map(i=>`<option value="${i}"${i===pick?' selected':''}>Slot ${i+1}</option>`).join('');$('fm').classList.add('open')}
+$('fc').onclick=()=>$('fm').classList.remove('open');
+function submitReq(){const n=$('nm').value.trim(),p=$('ph').value.trim(),v=$('vh').value.trim().toUpperCase(),e=$('fe');e.textContent='';
+ if(!n){e.textContent='Enter your name.';$('nm').focus();return}
+ if(!/^[0-9+ ()-]{7,15}$/.test(p)){e.textContent='Enter a valid phone number.';$('ph').focus();return}
+ if(!v){e.textContent='Enter your vehicle number.';$('vh').focus();return}
+ const s=st(sel.id),slot=+$('sl').value;
+ if(s.slots[slot]||s.pend.some(q=>q.slot==slot)){e.textContent='That slot was just taken. Choose another slot.';return}
+ s.pend.push({name:n,ph:p,veh:v,slot,start:new Date($('ar').value||nowL()).getTime(),mins:+$('du').value});save(sel.id);pick=null;
+ $('fm').classList.remove('open');['nm','ph','vh'].forEach(i=>$(i).value='');toast('Request sent. Staff will approve it at the gate.',4000);draw();$('book').scrollIntoView()}
+$('fs').onclick=submitReq;['nm','ph','vh'].forEach(i=>$(i).onkeydown=e=>{if(e.key=='Enter')submitReq()});
+function showPass(p){cur=p;$('pV').textContent=p.venue||sel.n;$('pT').textContent=p.ticket;$('pN').textContent=p.name;$('pH').textContent=p.veh;$('pS').textContent='Slot '+(p.slot+1);$('pB').textContent=p.time;$('pA').textContent=p.start?fmt(p.start):'-';$('pDu').textContent=p.mins?durL(p.mins):'-';$('pU').textContent=p.end?fmt(p.end):'-';
+ $('qr').innerHTML='';try{new QRCode($('qr'),{text:[p.ticket,p.venue,p.veh,'S'+(p.slot+1),p.end?new Date(p.end).toISOString():''].join('|'),width:150,height:150})}catch(e){$('qr').textContent='QR unavailable'}$('pm').classList.add('open')}
+$('pc').onclick=()=>$('pm').classList.remove('open');
+$('pd').onclick=()=>{const c=document.createElement('canvas');c.width=420;c.height=520;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,420,520);x.fillStyle='#0b3d91';x.fillRect(0,0,420,48);x.fillStyle='#fff';x.font='700 22px sans-serif';x.fillText('OFFICIAL PARKING PASS',16,32);
+ x.fillStyle='#111';x.font='16px sans-serif';[['Place',cur.venue],['Ticket ID',cur.ticket],['Driver',cur.name],['Vehicle',cur.veh],['Slot','Slot '+(cur.slot+1)],['Booked',cur.time],['Arrival',cur.start?fmt(cur.start):'-'],['Duration',cur.mins?durL(cur.mins):'-'],['Valid until',cur.end?fmt(cur.end):'-']].forEach((r,i)=>x.fillText(r[0]+': '+r[1],16,78+i*26));
+ const q=$('qr').querySelector('canvas');if(q)x.drawImage(q,135,335,150,150);x.fillStyle='#555';x.font='13px sans-serif';x.fillText('Show QR Code at Gate Entrance',110,505);
+ const a=document.createElement('a');a.download=cur.ticket+'.png';a.href=c.toDataURL('image/png');a.click()};
+/* Init */
+if(window.L){map=L.map('map',{zoomControl:false}).setView(AREAS[area],14);setLayer('sat');L.control.zoom({position:'bottomright'}).addTo(map);
+ map.on('dragend',()=>{$('sa').hidden=false});map.on('zoomend',()=>$('map').classList.toggle('nolab',map.getZoom()<15));draw();live()}
+else{$('map').innerHTML='<p style="color:#fff;padding:20px">The map could not load. Check your internet connection.</p>';draw()}
+</script></body></html>
